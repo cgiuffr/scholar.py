@@ -964,6 +964,8 @@ scholar.py -c 5 -a "albert einstein" -t --none "quantum theory" --after 1970"""
                      help='Maximum number of results')
     group.add_option('-S', '--start', type='int', default=None,
                      help='Start of results')
+    group.add_option('-N', '--pages', type='int', default=None,
+                     help='Number of pages of results')					 
     parser.add_option_group(group)
 
     group = optparse.OptionGroup(parser, 'Output format',
@@ -1056,25 +1058,33 @@ scholar.py -c 5 -a "albert einstein" -t --none "quantum theory" --after 1970"""
     if options.count is not None:
         options.count = min(options.count, ScholarConf.MAX_PAGE_RESULTS)
         query.set_num_page_results(options.count)	
+    else:
+	    options.count = settings.per_page_results
 		
     if options.start is not None:
 	    options.start = max(options.start, 0)
 	    query.set_start_results(options.start)
-	    print options.start
-		
-    querier.send_query(query)
-
-    if options.csv:
-        csv(querier)
-    elif options.csv_header:
-        csv(querier, header=True)
-    elif options.citation is not None:
-        citation_export(querier)
     else:
-        txt(querier)
-
-    if options.cookie_file:
-        querier.save_cookies()
+	    options.start = 0
+		
+    if options.pages is None:
+		options.pages = 1
+		
+    for i in range(options.pages):
+	    querier.send_query(query)
+	    options.start += options.count
+	    query.set_start_results(options.start)
+	    if options.csv:
+	    	csv(querier)
+	    elif options.csv_header:
+	    	csv(querier, header=(i == 0))
+	    elif options.citation is not None:
+	    	citation_export(querier)
+	    else:
+	    	txt(querier)
+        
+	    if options.cookie_file:
+	    	querier.save_cookies()
 
     return 0
 
