@@ -513,11 +513,16 @@ class ScholarQuery(object):
     def __init__(self):
         self.url = None
         self.num_results = ScholarConf.MAX_PAGE_RESULTS
+        self.start_results = None
 
     def set_num_page_results(self, num_page_results):
         msg = 'maximum number of results on page must be numeric'
         self.num_results = ScholarUtils.ensure_int(num_page_results, msg)
 
+    def set_start_results(self, start_results):
+		msg = 'start of result must be numeric'
+		self.start_results = ScholarUtils.ensure_int(start_results, msg)
+		
     def get_url(self):
         """
         Returns a complete, submittable URL string for this particular
@@ -567,7 +572,8 @@ class SearchScholarQuery(ScholarQuery):
     configure on the Scholar website, in the advanced search options.
     """
     SCHOLAR_QUERY_URL = ScholarConf.SCHOLAR_SITE + '/scholar?' \
-        + 'as_q=%(words)s' \
+		+ 'start=%(start)s' \
+        + '&as_q=%(words)s' \
         + '&as_epq=%(phrase)s' \
         + '&as_oq=%(words_some)s' \
         + '&as_eq=%(words_none)s' \
@@ -647,7 +653,8 @@ class SearchScholarQuery(ScholarQuery):
                    'pub': self.pub or '',
                    'ylo': self.timeframe[0] or '',
                    'yhi': self.timeframe[1] or '',
-                   'num': self.num_results or ScholarConf.MAX_PAGE_RESULTS}
+                   'num': self.num_results or ScholarConf.MAX_PAGE_RESULTS,
+				   'start': self.start_results or 0}
 
         for key, val in urlargs.items():
             urlargs[key] = quote(str(val))
@@ -955,6 +962,8 @@ scholar.py -c 5 -a "albert einstein" -t --none "quantum theory" --after 1970"""
                      help='Do not search, just use articles in given cluster ID')
     group.add_option('-c', '--count', type='int', default=None,
                      help='Maximum number of results')
+    group.add_option('-S', '--start', type='int', default=None,
+                     help='Start of results')
     parser.add_option_group(group)
 
     group = optparse.OptionGroup(parser, 'Output format',
@@ -1046,8 +1055,13 @@ scholar.py -c 5 -a "albert einstein" -t --none "quantum theory" --after 1970"""
 
     if options.count is not None:
         options.count = min(options.count, ScholarConf.MAX_PAGE_RESULTS)
-        query.set_num_page_results(options.count)
-
+        query.set_num_page_results(options.count)	
+		
+    if options.start is not None:
+	    options.start = max(options.start, 0)
+	    query.set_start_results(options.start)
+	    print options.start
+		
     querier.send_query(query)
 
     if options.csv:
